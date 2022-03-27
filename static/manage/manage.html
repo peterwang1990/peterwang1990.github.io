@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+    content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link href="https://unpkg.com/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+  <script src="https://unpkg.com/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous" async="async">
+  </script>
+  <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/moment@2.29.1/moment.js"></script>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- 引入组件库 -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <title>TAPFANTASY 后台管理</title>
+</head>
+
+<body>
+  <div id='main' style="margin: 20px" class="d-flex flex-column align-items-center">
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>钱包信息</span>
+        <el-button v-if="account.length===0" style="float: right;" type="primary" @click='walletConnect'>连接钱包
+        </el-button>
+      </div>
+      <div class="text item">
+        地址: {{account}}
+      </div>
+      <div class="text item">
+        链ID: {{chainId}} 管理员级别: {{adminCurLevel}}
+      </div>
+      <div class="text item" style="color: red;" v-if="errorMsg.length>0">
+        错误: {{errorMsg}}
+      </div>
+    </el-card>
+    <template v-if="isLogin">
+      <el-tabs v-model="activeName" @tab-click="changeRadioGroup" style="margin-top: 20px;">
+        <el-tab-pane label="活动管理" name="act"></el-tab-pane>
+        <el-tab-pane label="管理员管理" name="admin"></el-tab-pane>
+        <el-tab-pane label="数据看板" name="dashboard"></el-tab-pane>
+      </el-tabs>
+      <template v-if="radioSelectedIndex===0">
+        <el-radio-group v-model="radioSelected" style="margin-top: 20px" @change="changeRadioGroupOptIndex">
+          <el-radio-button @click="optIndex=0" label="查询"></el-radio-button>
+          <el-radio-button @click="optIndex=1" label="编辑"></el-radio-button>
+        </el-radio-group>
+        <div v-if="optIndex===0" class="d-flex flex-column align-items-center" style="margin-top: 20px;">
+          <div class="d-flex align-items-center">
+            <el-input size="mini" v-model.trim="inputActQueryWalletAddr" placeholder="请输入要查询的钱包地址" style="width: 320px">
+            </el-input>
+            <el-button @click="queryActWhite" size="mini" type="primary" style="margin-left: 10px;">查询活动白名单</el-button>
+          </div>
+          <div class="d-flex flex-column align-items-start" style="margin-top: 20px;width: 100%">
+            <template v-if="isShowQueryWhiteListResult">
+              <template v-if="actQueryJoinIDList.length===0">
+                未参加过任何白名单活动
+              </template>
+              <template v-else>
+                参加的白名单活动ID: {{actQueryJoinIDList.join(' ')}}
+              </template>
+            </template>
+          </div>
+        </div>
+        <div v-if="optIndex===1" class="d-flex flex-column align-items-center" style="margin-top: 20px;width: 446px">
+          <div class="d-flex align-items-center">
+            活动ID
+            <el-select size="mini" v-model="actID" placeholder="请选择" style="margin-left: 10px;width: 200px;">
+              <el-option v-for="(item,itemIndex) of actIDList" :key="'act_'+itemIndex" :label="item.name+' '+item.code"
+                :value="item.code">
+              </el-option>
+            </el-select>
+          </div>
+          <template v-if="!isShowActWhiteListResult">
+            <el-input style="width: 100%;margin-top: 20px;" size="mini" type="textarea" :autosize="{ minRows: 30}"
+              placeholder="请输入白名单地址,每行一个" v-model="textareaActWhiteList">
+            </el-input>
+            <el-button type="primary" size="mini" style="margin-top: 20px;" @click="addActWhiteList">添加活动白名单</el-button>
+          </template>
+          <template v-else>
+            <div class="d-flex align-items-center" style="margin-top: 20px;">操作结果</div>
+            <el-table :data="actWhiteListResult" style="width: 100%" :row-class-name="tableRowClassName">
+              <el-table-column>
+                <template slot-scope="scope">
+                  <div class="d-flex flex-column">
+                    <div>{{scope.row.address}}</div>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <div>{{scope.row.result? '成功': '失败:'}}</div>
+                    <div style="margin-left: 10px">{{scope.row.error}}</div>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" size="mini" style="margin-top: 20px;"
+              @click="isShowActWhiteListResult = false;textareaActWhiteList = ''">继续添加活动白名单</el-button>
+          </template>
+        </div>
+      </template>
+      <template v-else-if="radioSelectedIndex===1">
+        <div class="d-flex flex-column align-items-center" style="margin-top: 20px;width: 446px">
+          <div class="d-flex align-items-center">
+            管理级别
+            <el-select size="mini" v-model="adminLevel" placeholder="请选择" style="margin-left: 10px;width: 100px;">
+              <el-option v-for="item in 8" :key="'act_'+item" :label="item-1" :value="item-1">
+              </el-option>
+            </el-select>
+          </div>
+          <template v-if="!isShowAdminWhiteListResult">
+            <el-input style="width: 100%;margin-top: 20px;" size="mini" type="textarea" :autosize="{ minRows: 30}"
+              placeholder="请输入白名单地址,每行一个" v-model="textareaAdminWhiteList">
+            </el-input>
+            <el-button type="primary" size="mini" style="margin-top: 20px;" @click="addAdminWhiteList">添加管理员白名单
+            </el-button>
+          </template>
+          <template v-else>
+            <div class="d-flex align-items-center" style="margin-top: 20px;">操作结果</div>
+            <el-table :data="adminWhiteListResult" style="width: 100%" :row-class-name="tableRowClassName">
+              <el-table-column>
+                <template slot-scope="scope">
+                  <div class="d-flex flex-column">
+                    <div>{{scope.row.address}}</div>
+                  </div>
+                  <div class="d-flex align-items-center">
+                    <div>{{scope.row.result? '成功': '失败:'}}</div>
+                    <div style="margin-left: 10px">{{scope.row.error}}</div>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-button type="primary" size="mini" style="margin-top: 20px;"
+              @click="isShowAdminWhiteListResult = false;textareaAdminWhiteList = ''">继续添加管理员白名单</el-button>
+          </template>
+        </div>
+      </template>
+      <template v-else>
+        <template v-if="dashboard!==null">
+          <div class="d-flex" style="margin-top: 20px;width: 446px;">
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>交易信息</span>
+              </div>
+              <div v-for="(eleMP, eleMPIndex) of dashboard.list.market_order_infos" :key="'mp-'+eleMPIndex">
+                <template v-if="eleMP.open">
+                  <div class="text item">
+                    挂单量: {{eleMP.count}} 笔
+                  </div>
+                  <div class="text item">
+                    挂单额: {{eleMP.amount}} BUSD
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="text item">
+                    成交量: {{eleMP.count}} 笔
+                  </div>
+                  <div class="text item">
+                    成交额: {{eleMP.amount}} BUSD
+                  </div>
+                </template>
+              </div>
+            </el-card>
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>TAP-平台币</span>
+              </div>
+              <div class="text item">
+                价格: {{dashboard.list.tap_price}} BUSD
+              </div>
+              <div class="text item">
+                充值: {{dashboard.list.recharge_tap_totalamount}}
+              </div>
+              <div class="text item">
+                充值用户数: {{dashboard.list.recharge_tap_usercount}}
+              </div>
+              <div class="text item">
+                提现: {{dashboard.list.draw_tap_totalamount}}
+              </div>
+              <div class="text item">
+                提现用户数: {{dashboard.list.draw_tap_usercount}}
+              </div>
+            </el-card>
+          </div>
+          <div class="d-flex" style="margin-top: 10px;width: 446px;">
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>GOLD-金币</span>
+              </div>
+              <div class="text item">
+                花费: {{dashboard.list.cost_gold_totalamount}}
+              </div>
+              <div class="text item">
+                充值: {{dashboard.list.recharge_gold_totalamount}}
+              </div>
+              <div class="text item">
+                充值用户数: {{dashboard.list.recharge_gold_usercount}}
+              </div>
+              <div class="text item">
+                提现: {{dashboard.list.draw_gold_totalamount}}
+              </div>
+              <div class="text item">
+                提现用户数: {{dashboard.list.draw_gold_usercount}}
+              </div>
+            </el-card>
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>MC-魔晶</span>
+              </div>
+              <div class="text item">
+                价格: {{dashboard.list.mc_price}} BUSD
+              </div>
+              <div class="text item">
+                充值: {{dashboard.list.recharge_mc_totalamount}}
+              </div>
+              <div class="text item">
+                充值用户数: {{dashboard.list.recharge_mc_usercount}}
+              </div>
+              <div class="text item">
+                提现: {{dashboard.list.draw_mc_totalamount}}
+              </div>
+              <div class="text item">
+                提现用户数: {{dashboard.list.draw_mc_usercount}}
+              </div>
+            </el-card>
+          </div>
+          <div class="d-flex" style="margin-top: 10px;width: 446px;">
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>NFT-卡牌</span>
+              </div>
+              <div style="margin-bottom: 10px;font-size: 14px;">充值</div>
+              <div class="text item">
+                R: {{dashboard.list.recharge_nft_by_rarity[0]}} SR: {{dashboard.list.recharge_nft_by_rarity[1]}}
+              </div>
+              <div class="text item">
+                SSR: {{dashboard.list.recharge_nft_by_rarity[2]}} SP: {{dashboard.list.recharge_nft_by_rarity[3]}}
+              </div>
+              <div class="text item" style="padding-bottom:10px;border-bottom: 1px solid #EBEEF5;">
+                用户数: {{dashboard.list.recharge_nft_usercount}}
+              </div>
+              <div style="margin-bottom: 10px;font-size: 14px;">提现</div>
+              <div class="text item">
+                R: {{dashboard.list.draw_nft_by_rarity[0]}} SR: {{dashboard.list.draw_nft_by_rarity[1]}}
+              </div>
+              <div class="text item">
+                SSR: {{dashboard.list.draw_nft_by_rarity[2]}}
+              </div>
+              <div class="text item">
+                用户数: {{dashboard.list.draw_nft_usercount}}
+              </div>
+            </el-card>
+            <el-card class="box-card">
+              <div slot="header" class="clearfix">
+                <span>其他</span>
+              </div>
+              <div class="text item">
+                游戏用户数: {{dashboard.list.game_user_count}}
+              </div>
+              <div v-for="(eleWL, eleWLIndex) of dashboard.list.whitelist_count" :key="'wl-'+eleWLIndex">
+                <div class="text item">
+                  白名单ID {{eleWL[0]}} 地址数: {{eleWL[1]}}
+                </div>
+              </div>
+              <div class="text item">
+                最近推送NFT: {{formatTime(dashboard.list.last_pull_nft)}}
+              </div>
+              <div class="text item">
+                最近推送TOKEN: {{formatTime(dashboard.list.last_pull_token)}}
+              </div>
+              <div class="text item">
+                最近区块ID: {{dashboard.list.last_sync_blockinfo}}
+              </div>
+              <div class="text item">
+                最近升级NFT: {{formatTime(dashboard.list.last_upgrade_nft)}}
+              </div>
+            </el-card>
+          </div>
+          <div style="font-size: 12px; text-align: end;width: 446px;margin-top: 10px;">最后更新:
+            {{formatTime(dashboard.nowtime)}}</div>
+
+
+        </template>
+
+
+      </template>
+    </template>
+  </div>
+</body>
+<script>
+  vue = new Vue({
+    el: "#main",
+    data: {
+      account: '',
+      chainId: '',
+      docs_url: 'https://docs.metamask.io/guide/getting-started.html#basic-considerations',
+      radioSelected: '查询',
+      radioSelectedIndex: 0,
+      server: '',
+      isLogin: false,
+      actID: 33,
+      actIDList: [{
+        'name': '邀请码活动',
+        'code': 33
+      }],
+      textareaActWhiteList: '',
+      textareaAdminWhiteList: '',
+      adminLevel: 7,
+      optIndex: 0,
+      inputActQueryWalletAddr: '',
+      actQueryJoinIDList: [],
+      isShowQueryWhiteListResult: false,
+      isShowActWhiteListResult: false,
+      actWhiteListResult: [],
+      isShowAdminWhiteListResult: false,
+      adminWhiteListResult: [],
+      activeName: 'act',
+      adminWhiteList: [],
+      adminCurLevel: '',
+      errorMsg: '',
+      dashboard: null
+
+    },
+    mounted: async function () {
+      // axios.defaults.withCredentials = true
+      const accounts = await ethereum.request({
+        method: 'eth_requestAccounts'
+      })
+      this.account = accounts[0]
+
+      if (this.account.length > 0) {
+        this.chainId = parseInt(web3.currentProvider.chainId)
+        this.checkIsLogin()
+
+        if (window.ethereum) {
+          const ethereumMain = window.ethereum
+
+          ethereumMain.on('accountsChanged', this.handleAccountsChanged)
+          ethereumMain.on('chainChanged', (_chainId) => window.location.reload())
+        }
+      }
+
+
+    },
+    methods: {
+      formatTime: function (secs) {
+        return moment(secs * 1000).format('yyyy-MM-DD HH:mm:ss')
+      },
+      tableRowClassName: function ({
+        row,
+        rowIndex
+      }) {
+        if (!row.result) {
+          return 'warning-row'
+        } else {
+          return 'success-row'
+        }
+      },
+      checkIsLogin: async function () {
+        var that = this
+        var url = `${this.server}/web/manager/admin/islogin/${this.chainId}/${this.account}/`
+        var response = await axios.get(url)
+        if (response.status != 200) {
+          console.log('axios.get error', response)
+        } else {
+          if (response.data.code === 0) {
+            that.isLogin = response.data.data.islogin
+            if (that.isLogin) {
+              that.adminCurLevel = response.data.data.right
+            }
+          }
+
+        }
+
+        if (!that.isLogin) {
+          that.signLogin()
+        }
+      },
+      changeRadioGroupOptIndex: function () {
+        this.optIndex = this.radioSelected === '查询' ? 0 : 1
+      },
+      changeRadioGroup: async function () {
+        if (this.activeName === 'act' || this.activeName === 'admin') {
+          this.radioSelectedIndex = this.activeName === 'act' ? 0 : 1
+          this.radioSelected = '查询'
+          this.isShowActWhiteListResult = false
+          this.isShowAdminWhiteListResult = false
+          this.isShowQueryWhiteListResult = false
+          this.inputActQueryWalletAddr = ''
+          this.textareaActWhiteList = ''
+          this.textareaAdminWhiteList = ''
+        } else {
+          this.radioSelectedIndex = 2
+          var url = `${this.server}/web/manager/admin/bigdata/${this.chainId}/${this.account}/`
+          var response = await axios.get(url)
+          if (response.status != 200) {
+            console.log('axios.get error', response)
+          } else {
+            if (response.data.code === 0) {
+              this.dashboard = response.data.data
+            }
+
+          }
+        }
+
+      },
+      handleAccountsChanged: async function (accounts) {
+        var that = this
+        if (accounts.length === 0) {
+          // MetaMask is locked or the user has not connected any accounts
+          var url = `${that.server}/web/manager/admin/logout/${that.chainId}/${that.account}/`
+          var response = await axios.get(url)
+          if (response.status != 200) {
+            console.log('axios.get error', response)
+          } else {
+            if (response.data.code === 0) {
+              that.isLogin = !response.data.data.logout
+              that.account = ''
+              that.chainId = ''
+              that.adminCurLevel = ''
+            }
+
+          }
+
+        } else if (accounts[0] !== this.account) {
+          this.account = accounts[0]
+        }
+      },
+      walletConnect: async function () {
+        if (typeof window.ethereum !== 'undefined') {
+          console.log('MetaMask is installed!')
+        } else {
+          alert('提示用户安装 钱包 或者 MetaMask !')
+          return
+        }
+
+        // 获取钱包地址
+        const accounts = await ethereum.request({
+          method: 'eth_requestAccounts'
+        })
+        this.account = accounts[0]
+
+        // 【这块逻辑不是需要】，获取链ID，并在链不正确时，切换到正确的链
+        this.chainId = parseInt(web3.currentProvider.chainId)
+        var needchainId = '0x38' // = 56
+        if (this.chainId != needchainId) {
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{
+              chainId: needchainId
+            }],
+          })
+        }
+        this.signLogin()
+      },
+      signLogin: async function () {
+        var that = this
+        that.errorMsg = ''
+        var overtime = 1800
+        var msg = `chainid:${this.chainId}\r\novertime:${overtime}\r\n`
+        var from = this.account
+        var params = [msg, from]
+
+        await window.web3.currentProvider.sendAsync({
+            method: 'personal_sign',
+            params,
+            from,
+          },
+          async function (err, result) {
+            if (err) return console.error(err)
+            if (result.error) return console.error(result.error)
+            // console.log('PERSONAL SIGNED:' + result.result)
+
+            // 签名数据给 中间服务器 验证签名
+            // API说明 /api/user/verify/消息ID/
+            // 参数含义：消息ID=getinfo接口获得的msgid  POSTDATA={'signature':签名数据}
+            // 返回值： code=0调用成功 result=0验证成功 wallet=签名钱包
+            var url = `${that.server}/web/manager/admin/login/${that.chainId}/${that.account}/${overtime}/`
+            var postdata = {
+              'signature': result.result
+            }
+            response = await axios.post(url, postdata)
+            if (response.data.data.code == 0) {
+              console.log(response.data.data)
+              that.isLogin = response.data.data.login
+              that.checkIsLogin()
+              // alert('sign ok ' + response.data.data.wallet)
+            } else {
+              that.errorMsg = response.data.data.error
+            }
+          }
+        )
+      },
+      queryActWhite: async function () {
+        var that = this
+        that.errorMsg = ''
+        if (that.inputActQueryWalletAddr.length === 0) {
+          that.errorMsg = '请输入要查询的钱包地址'
+          return
+        }
+        var url =
+          `${this.server}/web/manager/whitelist/find/${this.chainId}/${this.account}/${that.inputActQueryWalletAddr}/`
+        var response = await axios.get(url)
+        if (response.status != 200) {
+          console.log('axios.get error', response)
+        } else {
+          if (response.data.data.code === 0) {
+            console.log(response.data)
+            var list = response.data.data.list
+            var result = []
+            for (var ele of list) {
+              result.push(ele.whiteid)
+            }
+            that.actQueryJoinIDList = result
+            that.isShowQueryWhiteListResult = true
+          }
+
+        }
+      },
+      addActWhiteList: async function () {
+        var that = this
+        that.errorMsg = ''
+        var actID = that.actID.toString()
+        var actWhiteList = that.textareaActWhiteList.split('\n')
+        var actWhiteTrimList = []
+        for (var ele of actWhiteList) {
+          actWhiteTrimList.push(ele.trim())
+        }
+        that.textareaActWhiteList = actWhiteTrimList.join('\n')
+        // console.log(adminWhiteList)
+        var msg = actID.concat('\r\n', actWhiteTrimList.join('\r\n'))
+        console.log(msg)
+        var from = that.account
+        var params = [msg, from]
+
+        await window.web3.currentProvider.sendAsync({
+            method: 'personal_sign',
+            params,
+            from,
+          },
+          async function (err, result) {
+            if (err) return console.error(err)
+            if (result.error) return console.error(result.error)
+            console.log('PERSONAL SIGNED:' + result.result)
+
+            // 签名数据给 中间服务器 验证签名
+            // API说明 /api/user/verify/消息ID/
+            // 参数含义：消息ID=getinfo接口获得的msgid  POSTDATA={'signature':签名数据}
+            // 返回值： code=0调用成功 result=0验证成功 wallet=签名钱包
+            var url = `${that.server}/web/manager/whitelist/add/${that.chainId}/${that.account}/${actID}/`
+            var postdata = {
+              'data': actWhiteTrimList,
+              'signature': result.result
+            }
+            response = await axios.post(url, postdata)
+            if (response.data.data.code == 0) {
+              console.log(response.data.data)
+              that.isShowActWhiteListResult = true
+              that.actWhiteListResult = response.data.data.result
+              // alert('sign ok ' + response.data.data.wallet)
+            } else {
+              that.errorMsg = response.data.data.error
+            }
+          }
+        )
+
+      },
+      addAdminWhiteList: async function () {
+        var that = this
+        that.errorMsg = ''
+        var level = that.adminLevel.toString()
+        var adminWhiteList = that.textareaAdminWhiteList.split('\n')
+        var adminWhiteTrimList = []
+        for (var ele of adminWhiteList) {
+          adminWhiteTrimList.push(ele.trim())
+        }
+        that.textareaAdminWhiteList = adminWhiteTrimList.join('\n')
+        // console.log(adminWhiteList)
+        var msg = level.concat('\r\n', adminWhiteTrimList.join('\r\n'))
+        // console.log(message)
+        var from = that.account
+        var params = [msg, from]
+
+        await window.web3.currentProvider.sendAsync({
+            method: 'personal_sign',
+            params,
+            from,
+          },
+          async function (err, result) {
+            if (err) return console.error(err)
+            if (result.error) return console.error(result.error)
+            // console.log('PERSONAL SIGNED:' + result.result)
+
+            // 签名数据给 中间服务器 验证签名
+            // API说明 /api/user/verify/消息ID/
+            // 参数含义：消息ID=getinfo接口获得的msgid  POSTDATA={'signature':签名数据}
+            // 返回值： code=0调用成功 result=0验证成功 wallet=签名钱包
+            var url = `${that.server}/web/manager/admin/update/${that.chainId}/${that.account}/${level}/`
+            var postdata = {
+              'data': adminWhiteTrimList,
+              'signature': result.result
+            }
+            response = await axios.post(url, postdata)
+            if (response.data.data.code == 0) {
+              console.log(response.data.data)
+              that.isShowAdminWhiteListResult = true
+              that.adminWhiteListResult = response.data.data.result
+              // alert('sign ok ' + response.data.data.wallet)
+            } else {
+              that.errorMsg = response.data.data.error
+            }
+          }
+        )
+
+      },
+      sign: async function () {
+        // 检查钱包可用-浏览器安装了相关插件
+        if (typeof window.ethereum !== 'undefined') {
+          console.log('MetaMask is installed!')
+        } else {
+          alert('提示用户安装 钱包 或者 MetaMask !')
+          return
+        }
+
+        // 获取钱包地址
+        const accounts = await ethereum.request({
+          method: 'eth_requestAccounts'
+        })
+        this.account = accounts[0]
+
+        // 【这块逻辑不是需要】，获取链ID，并在链不正确时，切换到正确的链
+        this.chainId = parseInt(web3.currentProvider.chainId)
+        var needchainId = '0x38' // = 56
+        if (this.chainId != needchainId) {
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{
+              chainId: needchainId
+            }],
+          })
+        }
+
+        // 获取需要签名的消息
+        const serverId = 56 // BSC链对应的服务器为 56
+        // API说明 /api/user/getinfo/服务器ID/钱包地址/操作ID/
+        // 参数含义：服务器ID=56  钱包地址=0xxxx  操作ID=0 0为登陆
+        // 返回值： code=0调用成功 messsage=代签名信息 msgid=消息ID
+        var url = '/api/user/getinfo/' + serverId + '/' + this.account + '/0/?format=json'
+        var response = await axios.get(url)
+        if (response.status != 200) {
+          console.log('axios.get error', response)
+        }
+
+        // 拉起本地钱包进行签名
+        var msg = response.data.data.messsage
+        var msgid = response.data.data.msgid
+        var from = this.account
+        var params = [msg, from]
+        var signed = await window.web3.currentProvider.sendAsync({
+            method: 'personal_sign',
+            params,
+            from,
+          },
+          async function (err, result) {
+            if (err) return console.error(err)
+            if (result.error) return console.error(result.error)
+            console.log('PERSONAL SIGNED:' + result.result)
+
+            // 签名数据给 中间服务器 验证签名
+            // API说明 /api/user/verify/消息ID/
+            // 参数含义：消息ID=getinfo接口获得的msgid  POSTDATA={'signature':签名数据}
+            // 返回值： code=0调用成功 result=0验证成功 wallet=签名钱包
+            var url = '/api/user/verify/' + msgid + '/'
+            var postdata = {
+              'signature': result.result
+            }
+            response = await axios.post(url, postdata)
+            if (response.data.data.result == 0) {
+              console.log('axios.post success ' + response.data.data.wallet)
+              alert('sign ok ' + response.data.data.wallet)
+            }
+          }
+        )
+      }
+    }
+  })
+
+</script>
+<style>
+  .el-table .warning-row {
+    background: oldlace;
+    color: red;
+  }
+
+  .el-table .success-row {
+    background: #f0f9eb;
+  }
+
+  .text {
+    font-size: 14px
+  }
+
+  .item {
+    margin-bottom: 10px
+  }
+
+  .clearfix:before,
+  .clearfix:after {
+    display: table;
+    content: ""
+  }
+
+  .clearfix:after {
+    clear: both;
+  }
+
+  .box-card {
+    width: 100%;
+  }
+
+  .box-card:first-child {
+    margin-right: 20px
+  }
+
+</style>
+
+</html>
