@@ -1,1 +1,47 @@
-<!doctype html><html lang="en" style="overflow-x:hidden;min-width:1024px"><head><meta charset="utf-8"/><link rel="icon" href="/favicon.ico"/><meta name="viewport" content="minimum-scale=1,initial-scale=1,width=device-width"/><meta name="theme-color" content="#000000"/><meta name="description" content="Play Aria Game"/><link rel="apple-touch-icon" href="/logo192.png"/><link rel="manifest" href="/manifest.json"/><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter&family=Bakbak+One&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet"><title>Play Aria Game</title><style>body{background-color:#000}</style><script>/(iPhone|iPad|iPhone OS|Phone|iPod|iOS)/i.test(navigator.userAgent)&&(head=document.getElementsByTagName("head"),viewport=document.createElement("meta"),viewport.name="viewport",viewport.content="target-densitydpi=device-dpi, width=480px, user-scalable=no",head.length>0&&head[head.length-1].appendChild(viewport))</script><script defer="defer" src="/static/js/main.1aeac330.js"></script><link href="/static/css/main.b6a830dd.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" charset="UTF-8">
+    <title>Telegram webapp</title>
+    <!-- telegram api -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5H2GSNMMTY"></script>
+    <style>
+    body {
+      margin: 0;
+      display: block;
+      width: 100vh;
+      height: 100vw;
+      transform: translateY(100vh) rotate(-90deg);
+      transform-origin: top left;
+    }
+    iframe {
+        display: block; /* iframes are inline by default */
+        background: #000;
+        border: none; /* Reset default border */
+        height: 100vw; /* Viewport-relative units */
+        width: 100vh;
+    }
+    </style>
+</head>
+<body>
+<div id="main">
+    <div id="content">
+        <iframe name="tpfunName" height="100%" width="100%" id="frame_full" frameborder="0" scrolling="auto" allowfullscreen ></iframe>
+    </div>
+</div>
+<script>
+    Telegram.WebApp.ready();
+	var timestamp = new Date().getTime();
+    document.getElementById("frame_full").src = "https://dykry4s5gawvt.cloudfront.net/web/index.html?channelId=650001&ver=" + timestamp + "&id=" + Telegram.WebApp.initDataUnsafe.user.id + "&name=" + Telegram.WebApp.initDataUnsafe.user.first_name
+
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-5H2GSNMMTY', {
+        'user_id': '' + Telegram.WebApp.initDataUnsafe.user.id
+    });
+</script>
+</body>
+</html>
