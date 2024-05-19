@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" charset="UTF-8">
+    <title>Telegram webapp</title>
+    <!-- telegram api -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5H2GSNMMTY"></script>
+    <style>
+    body {
+      margin: 0;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      /*transform: translateY(100vh) rotate(-90deg);*/
+      /*transform-origin: top left;*/
+    }
+    iframe {
+        display: block; /* iframes are inline by default */
+        background: #000;
+        border: none; /* Reset default border */
+        height: 100vh; /* Viewport-relative units */
+        width: 100vw;
+    }
+    </style>
+</head>
+<body>
+<div id="main">
+    <div id="content">
+        <iframe name="tpfunName" height="100%" width="100%" id="frame_full" frameborder="0" scrolling="auto" allowfullscreen ></iframe>
+    </div>
+</div>
+<script>
+    Telegram.WebApp.ready();
+	var timestamp = new Date().getTime();
+    document.getElementById("frame_full").src = "https://game.catizen.ai/tgCat/app/index240425.html?ts=1715941792872&botname=catizenbot&openType=10000"
+
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-5H2GSNMMTY', {
+        'user_id': '' + Telegram.WebApp.initDataUnsafe.user.id
+    });
+</script>
+</body>
+</html>
