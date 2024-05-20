@@ -1,47 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" charset="UTF-8">
-    <title>Telegram webapp</title>
-    <!-- telegram api -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5H2GSNMMTY"></script>
-    <style>
-    body {
-      margin: 0;
-      display: block;
-      width: 100vh;
-      height: 100vw;
-      transform: translateY(100vh) rotate(-90deg);
-      transform-origin: top left;
-    }
-    iframe {
-        display: block; /* iframes are inline by default */
-        background: #000;
-        border: none; /* Reset default border */
-        height: 100vw; /* Viewport-relative units */
-        width: 100vh;
-    }
-    </style>
-</head>
-<body>
-<div id="main">
-    <div id="content">
-        <iframe name="tpfunName" height="100%" width="100%" id="frame_full" frameborder="0" scrolling="auto" allowfullscreen ></iframe>
-    </div>
-</div>
-<script>
-    Telegram.WebApp.ready();
-	var timestamp = new Date().getTime();
-    document.getElementById("frame_full").src = "https://dykry4s5gawvt.cloudfront.net/web/index.html?channelId=650001&ver=" + timestamp + "&id=" + Telegram.WebApp.initDataUnsafe.user.id + "&name=" + Telegram.WebApp.initDataUnsafe.user.first_name
 
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-5H2GSNMMTY', {
-        'user_id': '' + Telegram.WebApp.initDataUnsafe.user.id
-    });
-</script>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite + React + TS</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script type="module" crossorigin src="/assets/index-tIGNMGL6.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BPsJjGiy.css">
+</head>
+
+<body>
+  <div id="root"></div>
 </body>
+
 </html>
